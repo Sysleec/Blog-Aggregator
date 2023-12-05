@@ -9,6 +9,7 @@
 *.dylib
 out
 secret.env
+.idea
 
 
 # Test binary, built with `go test -c`
