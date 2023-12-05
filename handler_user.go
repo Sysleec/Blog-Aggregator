@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Sysleec/Blog-Aggregator/internal/auth"
 	"github.com/Sysleec/Blog-Aggregator/internal/database"
 	"github.com/google/uuid"
 )
@@ -20,7 +21,7 @@ func (apiCfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request
 	params := parameters{}
 	err := decoder.Decode(&params)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
+		respondWithError(w, http.StatusBadRequest, "Couldn't decode parameters")
 		return
 	}
 
@@ -32,9 +33,25 @@ func (apiCfg apiConfig) handlerCreateUser(w http.ResponseWriter, r *http.Request
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, fmt.Sprintf("Cant create user: %s", err))
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Cant create user: %s", err))
 		return
 	}
 
-	respondWithJSON(w, http.StatusOK, user)
+	respondWithJSON(w, http.StatusCreated, databaseUserToUser(user))
+}
+
+func (apiCfg apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetApiKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, fmt.Sprintf("Auth error: %s", err))
+		return
+	}
+
+	user, err := apiCfg.DB.GetUserByAPIKey(r.Context(), apiKey)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, fmt.Sprintf("Couldn't get user: %v", err))
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, databaseUserToUser(user))
 }
